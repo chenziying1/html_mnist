@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MNIST Model Inference with TensorFlow.js</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    canvas {
+      border: 1px solid black;
+      background-color: black;
+    }
+  </style>
+</head>
+<body>
+  <h1>MNIST Model Inference</h1>
+  <canvas id="canvas" width="280" height="280"></canvas>
+  <div>
+    <button onclick="predict()">Predict</button>
+    <button onclick="clearCanvas()">Clear</button>
+    <div id="status"></div>
+  </div>
+  
+  <script>
+    let model;
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 加载预训练的MNIST模型
+    async function loadModel() {
+      // 将 URL 替换为你自己模型的URL或本地路径
+      model = await tf.loadLayersModel('./mnist_model/model.json');
+      console.log('Model Loaded');
+    }
+
+    // 绘制手写数字到canvas上
+    canvas.addEventListener('mousemove', (event) => {
+      if (event.buttons === 1) {
+        ctx.lineWidth = 20;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = 'white';
+        ctx.beginPath();
+        ctx.moveTo(event.offsetX, event.offsetY);
+        ctx.lineTo(event.offsetX, event.offsetY);
+        ctx.stroke();
+      }
+    });
+
+    // 清除画布内容
+    function clearCanvas() {
+      ctx.fillStyle = 'black';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      document.getElementById("status").innerText = '';
+    }
+
+    // 使用预训练模型进行推理
+    async function predict() {
+      // 获取canvas中的图像数据
+      const img = tf.browser.fromPixels(canvas); // 形状为 [280, 280, 3] (RGB)
+      
+      // 将图像大小调整为 28x28
+      const resizedImg = tf.image.resizeBilinear(img, [28, 28]); // 形状为 [28, 28, 3]
+      
+      // 将 RGB 图像转换为灰度图像
+      const grayImg = resizedImg.mean(2); // 形状为 [28, 28]
+      
+      // 归一化图像数据到 [0, 1] 范围
+      const normalizedImg = grayImg.div(tf.scalar(255)); // 形状为 [28, 28]
+      
+      // 扩展维度以匹配模型输入形状 [batch_size, 28, 28, 1]
+      const inputImg = normalizedImg.expandDims(0).expandDims(-1); // 形状为 [1, 28, 28, 1]
+      
+      // 获取模型的预测结果
+      const predictions = model.predict(inputImg);
+      const predictionArray = predictions.dataSync();
+      
+      // 获取预测的数字
+      const predictedLabel = predictionArray.indexOf(Math.max(...predictionArray));
+      
+      document.getElementById("status").innerText = `Predicted: ${predictedLabel}`;
+    }
+
+    // 初始化加载模型
+    loadModel();
+  </script>
+</body>
+</html>

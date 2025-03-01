@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "mnist-data": "^1.2.6"
+  }
+}
